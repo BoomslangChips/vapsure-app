@@ -35,27 +35,31 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli@latest
 
-      - name: Restore or create signing keystore
+      - name: Provide signing keystore
         env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           set -e
-          if [ -f android.keystore.b64 ]; then
-            base64 -d android.keystore.b64 > android.keystore
-            echo "Restored existing keystore."
+          if [ -n "$KS_B64" ]; then
+            printf '%s' "$KS_B64" | base64 -d > android.keystore
+            echo "keystore: restored from ANDROID_KEYSTORE_B64 secret"
           else
             keytool -genkeypair -v -keystore android.keystore -alias vapsure \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass "$KS_PASS" -keypass "$KS_PASS" \
               -dname "CN=Vap-Sure, O=Vap-Sure Underwriting Managers, L=Johannesburg, C=ZA"
-            base64 -w0 android.keystore > android.keystore.b64
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add android.keystore.b64
-            git commit -m "ci: persist signing keystore"
-            git push
-            echo "Generated and committed a new keystore."
+            echo "keystore: generated fresh (uploaded as an artifact below so it can be saved to a secret)"
+            echo "NEW_KEYSTORE=1" >> "$GITHUB_ENV"
           fi
+
+      - name: Upload generated keystore (first run only)
+        if: env.NEW_KEYSTORE == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keystore
+          path: android.keystore
+          retention-days: 1
 
       - name: Point Bubblewrap at the JDK / Android SDK
         run: |
@@ -94,5 +98,5 @@ jobs:
           name: Vap-Sure Android app (latest)
           body: |
             Signed Android APK that wraps the Vap-Sure quoting portal (portal.vapsure.co.za).
-            Download `vapsure.apk` below and open it on your phone to install.
+            Download vapsure.apk below and open it on your phone to install.
           files: vapsure.apk
