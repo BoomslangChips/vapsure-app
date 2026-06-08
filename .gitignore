@@ -1,0 +1,19 @@
+# Bubblewrap / Android project — regenerated in CI from twa-manifest.json
+app/
+build/
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+settings.gradle
+build.gradle
+local.properties
+store_icon.png
+splash.png
+node_modules/
+*.apk
+*.aab
+*.idsig
+
+# Raw keystore — only the base64 form (android.keystore.b64) is committed
+android.keystore
